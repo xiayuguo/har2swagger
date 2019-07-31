@@ -201,18 +201,26 @@ def parse(entries):
     
         
 
-def output(path, data):
+def output(path, data, format):
     with open(path, "w") as f:
-        yaml.dump(data, f, Dumper=Dumper, default_flow_style=False)
+        if format == "yaml":
+            yaml.dump(data, f, Dumper=Dumper, default_flow_style=False)
+        else:
+            json.dump(data, f)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='convert har to swagger')
     parser.add_argument('-i', type=str, required=True, help='input har file')
-    parser.add_argument('-o', type=str, default="swagger.yaml",
-                        help='output swagger file(yaml format), default swagger.yaml')
-
+    parser.add_argument('-o', type=str, default="swagger",
+                        help='output swagger file, default is swagger')
+    parser.add_argument('-f', type=str, default="yaml", choices=["yaml", "json"],
+                        help='output format[yaml|json], default is yaml')
+    parser.add_argument('--openapi', type=int, default=2, choices=[2, 3],
+                        help='OpenAPI Specification[2|3], default is 2')
     args = parser.parse_args()
+    if args.openapi == 3:
+        raise Exception("Not support OpenAPI 3.0")
     paths = parse(input(args.i))
     swagger = OrderedDict(
         swagger="2.0",
@@ -227,4 +235,8 @@ if __name__ == "__main__":
         # schemas=["https", "http"],
         paths=paths
     )
-    output(args.o, swagger)
+    if args.o.endswith(".%s" % args.f):
+        path = args.o
+    else:
+        path = "%s.%s" % (args.o, args.f)
+    output(path, swagger, args.f)

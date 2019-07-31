@@ -16,15 +16,14 @@ python har2swagger.py -i your-har-file.har
 python har2swagger.py -h
 ```
 ## Support
-- [x] Python3
+- [x] Only Python3
 - [x] Swagger 2.0(yaml)
+- [x] swagger 2.0(json)
 - [x] GET
 - [x] POST(json body)
 - [x] POST(application/x-www-form-urlencoded)
 - [x] POST(multipart/form-data)
 - [x] application/json
-- [] application/xml
-- [] swagger 2.0(json)
-- [] openapi 3.0(yaml)
-- [] openapi 3.0(json)
-- [] Python2
+- [ ] application/xml
+- [ ] openapi 3.0(yaml)
+- [ ] openapi 3.0(json)
