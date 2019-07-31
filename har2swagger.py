@@ -6,6 +6,7 @@ author: hugo
 import json
 import yaml
 import argparse
+import warnings
 
 from collections import abc, OrderedDict
 from urllib.parse import urlparse
@@ -46,7 +47,7 @@ class YAMLSchemaDecoder(json.JSONDecoder):
     
     def parse_schema(self, val):
         if isinstance(val, abc.Mapping):
-            return dict(
+            return OrderedDict(
                 type="object",
                 properties={k: self.parse_schema(v) for k, v in val.items()}
             )
@@ -55,36 +56,36 @@ class YAMLSchemaDecoder(json.JSONDecoder):
                 items = {}
             else:
                 items = self.parse_schema(val[0])
-            return dict(
+            return OrderedDict(
                 type="array",
                 items=items
             )
         elif isinstance(val, int):
-            return dict(
+            return OrderedDict(
                 type="integer",
                 description="",
                 example=val
             )
         elif isinstance(val, float):
-            return dict(
+            return OrderedDict(
                 type="number",
                 description="",
                 example=val
             )
         elif isinstance(val, str):
-            return dict(
+            return OrderedDict(
                 type="string",
                 description="",
                 example=val
             )
         elif isinstance(val, bool):
-            return dict(
+            return OrderedDict(
                 type="boolean",
                 desciption="",
                 example=val
             )
         elif isinstance(val, type(None)):
-            return dict(
+            return OrderedDict(
                 type="string",
                 # nullable=True,
                 # desciption="",
@@ -93,6 +94,7 @@ class YAMLSchemaDecoder(json.JSONDecoder):
         else:
             raise ValueError("Not support type: %s, value: %s" % (type(val), val))
 
+yaml_schema_decoder = YAMLSchemaDecoder()
 
 class FrozenJSON:
     """A read-only façade for navigating a JSON-like object using attribute notation"""
@@ -137,16 +139,40 @@ def parse_request(request):
             "description": "",
             "required": True
         })
-    return dict(path=path, method=method, parameters=parameters)
+    if request.bodySize > 0:
+        post_data = request.postData
+        mime_type = post_data.mimeType.split(";")[0]
+        consumes = [mime_type]
+        if "json" in mime_type:
+            schema = json.loads(post_data.text, cls=YAMLSchemaDecoder)
+            parameters.append({
+                "in": "body",
+                "name": "request-body",
+                "description": "",
+                "schema": schema
+            })
+        elif "form" in mime_type:
+            for param in post_data.params:
+                parameters.append({
+                    "in": "formData",
+                    "name": param.name,
+                    "type": yaml_schema_decoder.parse_schema(param.value)["type"],
+                    "description": ""
+                })
+        else:
+            warnings.warn("not support mimetype %s" % mime_type)
+    else:
+        consumes = []
+    return dict(path=path, method=method, consumes=consumes, parameters=parameters)
     
 
 
 def parse_response(response):
     """Parse response data from an API"""
     status = response.status
-    consumes = [response.content.mimeType]
+    produces = [response.content.mimeType]
     schema = json.loads(response.content.text, cls=YAMLSchemaDecoder)
-    return dict(status=status, consumes=consumes, schema=schema)
+    return dict(status=status, produces=produces, schema=schema)
 
 
 def parse(entries):
@@ -160,7 +186,8 @@ def parse(entries):
                 tags=["API Tag"],
                 summary="API Summary",
                 description="API Description",
-                consumes=res["consumes"],
+                produces=res["produces"],
+                consumes=req["consumes"],
                 parameters=req["parameters"],
                 responses={
                     res["status"]: {
