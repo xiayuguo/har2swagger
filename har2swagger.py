@@ -18,6 +18,7 @@ except ImportError:
 
 from yaml.representer import SafeRepresenter
 
+_host, _schemas = "0.0.0.0:80", set()
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 
@@ -94,7 +95,9 @@ class YAMLSchemaDecoder(json.JSONDecoder):
         else:
             raise ValueError("Not support type: %s, value: %s" % (type(val), val))
 
+
 yaml_schema_decoder = YAMLSchemaDecoder()
+
 
 class FrozenJSON:
     """A read-only façade for navigating a JSON-like object using attribute notation"""
@@ -116,7 +119,8 @@ class FrozenJSON:
         else:
             return obj
 
-def input(path):
+
+def input_file(path):
 
     with open(path, "rb") as f:
         source = FrozenJSON(json.load(f))
@@ -127,8 +131,11 @@ def input(path):
 
 def parse_request(request):
     """Parse request data from an API"""
+    global _host, _schemas
     method = request.method.lower()
-    path = urlparse(request.url).path
+    parse_result = urlparse(request.url)
+    _host = parse_result.netloc
+    _schemas.add(parse_result.scheme)
     parameters = []
     for query in request.queryString:
         parameters.append({
@@ -163,9 +170,8 @@ def parse_request(request):
             warnings.warn("not support mimetype %s" % mime_type)
     else:
         consumes = []
-    return dict(path=path, method=method, consumes=consumes, parameters=parameters)
+    return dict(path=parse_result.path, method=method, consumes=consumes, parameters=parameters)
     
-
 
 def parse_response(response):
     """Parse response data from an API"""
@@ -199,9 +205,8 @@ def parse(entries):
         }
     return paths
     
-        
 
-def output(path, data, format):
+def output_file(path, data, format):
     with open(path, "w") as f:
         if format == "yaml":
             yaml.dump(data, f, Dumper=Dumper, default_flow_style=False)
@@ -209,7 +214,7 @@ def output(path, data, format):
             json.dump(data, f)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='convert har to swagger')
     parser.add_argument('-i', type=str, required=True, help='input har file')
     parser.add_argument('-o', type=str, default="swagger",
@@ -221,22 +226,26 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.openapi == 3:
         raise Exception("Not support OpenAPI 3.0")
-    paths = parse(input(args.i))
+    paths = parse(input_file(args.i))
     swagger = OrderedDict(
         swagger="2.0",
         info=dict(
             description="API Document",
             version="1.0.0.0",
             title="API",
-            contact=dict(email="hugoxia@126.com")
+            contact=dict(email="api-developer@darker.com")
         ),
-        host="127.0.0.1:80",
+        host=_host,
         tags=[dict(name="API Tag", description="API Description")],
-        # schemas=["https", "http"],
+        schemas=list(_schemas),
         paths=paths
     )
     if args.o.endswith(".%s" % args.f):
         path = args.o
     else:
         path = "%s.%s" % (args.o, args.f)
-    output(path, swagger, args.f)
+    output_file(path, swagger, args.f)
+
+
+if __name__ == "__main__":
+    main()

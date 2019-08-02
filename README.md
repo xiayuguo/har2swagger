@@ -18,7 +18,7 @@ python har2swagger.py -h
 ## Support
 - [x] Only Python3
 - [x] Swagger 2.0(yaml)
-- [x] swagger 2.0(json)
+- [x] Swagger 2.0(json)
 - [x] GET
 - [x] POST(json body)
 - [x] POST(application/x-www-form-urlencoded)
