@@ -4,7 +4,7 @@ convert har to swagger 2.0
 ## Usage
 ### Install
 ```
-git clone https://github.com/hugoxia/har2swagger.git
+git clone https://github.com/xiayuguo/har2swagger.git
 cd har2swagger && pip install -r requirements.txt
 ```
 ### Run
