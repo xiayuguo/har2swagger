@@ -18,7 +18,7 @@ except ImportError:
 
 from yaml.representer import SafeRepresenter
 
-_host, _schemas = "0.0.0.0:80", set()
+_host, _schemes = "0.0.0.0:80", set()
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 
@@ -45,7 +45,7 @@ class YAMLSchemaDecoder(json.JSONDecoder):
     def decode(self, obj):
         val = super(YAMLSchemaDecoder, self).decode(obj)
         return self.parse_schema(val)
-    
+
     def parse_schema(self, val):
         if isinstance(val, abc.Mapping):
             return OrderedDict(
@@ -131,11 +131,11 @@ def input_file(path):
 
 def parse_request(request):
     """Parse request data from an API"""
-    global _host, _schemas
+    global _host, _schemes
     method = request.method.lower()
     parse_result = urlparse(request.url)
     _host = parse_result.netloc
-    _schemas.add(parse_result.scheme)
+    _schemes.add(parse_result.scheme)
     parameters = []
     for query in request.queryString:
         parameters.append({
@@ -171,7 +171,7 @@ def parse_request(request):
     else:
         consumes = []
     return dict(path=parse_result.path, method=method, consumes=consumes, parameters=parameters)
-    
+
 
 def parse_response(response):
     """Parse response data from an API"""
@@ -204,7 +204,7 @@ def parse(entries):
             )
         }
     return paths
-    
+
 
 def output_file(path, data, format):
     with open(path, "w") as f:
@@ -237,7 +237,7 @@ def main():
         ),
         host=_host,
         tags=[dict(name="API Tag", description="API Description")],
-        schemas=list(_schemas),
+        schemes=list(_schemes),
         paths=paths
     )
     if args.o.endswith(".%s" % args.f):
