@@ -12,8 +12,8 @@ setup(
     description='convert har to swagger',
     long_description=readme,
     author='hugo',
-    author_email='hugoxia@126.com',
-    url='https://github.com/hugoxia/har2swagger',
+    author_email='hi@yuguo.im',
+    url='https://github.com/xiayuguo/har2swagger',
     license='MIT',
     install_requires=requirements,
     classifiers=[
